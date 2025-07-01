@@ -18,8 +18,7 @@ class ArtGridApp:
         self.grid_width = 50
         self.grid_height = 50
         self.line_thickness = 1
-        self.image_size_factor = 1.0
-        self.zoom_level = 1.0
+        self.image_resize_factor = 1.0
         self.pan_x = 0
         self.pan_y = 0
         self.dragging = False
@@ -41,14 +40,13 @@ class ArtGridApp:
             'adjust_grid_width': self.adjust_grid_width,
             'adjust_grid_height': self.adjust_grid_height,
             'adjust_thickness': self.adjust_thickness,
-            'adjust_image_size_factor': self.adjust_image_size_factor,
-            'adjust_zoom': self.adjust_zoom,
+            'adjust_image_resize': self.adjust_image_resize,
             'update_grid': self.update_grid,
-            'update_zoom': self.update_zoom,
+            'update_image_resize': self.update_image_resize,
             'start_drag': self.start_drag,
             'drag': self.drag,
             'end_drag': self.end_drag,
-            'mouse_zoom': self.mouse_zoom
+            'mouse_resize': self.mouse_resize
         }
 
         self.controls = ControlPanels(root, callbacks)
@@ -133,51 +131,42 @@ class ArtGridApp:
             self.line_thickness = new_value
             self.update_grid()
 
-    def adjust_image_size_factor(self, amount):
-        new_value = self.controls.image_size_factor_scale.get() + amount
+    def adjust_image_resize(self, amount):
+        new_value = self.controls.image_resize_scale.get() + amount
         if 0.1 <= new_value <= 10:
-            self.controls.image_size_factor_scale.set(new_value)
-            self.image_size_factor = new_value
-            self.update_grid()
-
-    def adjust_zoom(self, amount):
-        new_value = self.controls.zoom_scale.get() + amount
-        if 0.1 <= new_value <= 10:
-            self.controls.zoom_scale.set(new_value)
-            self.zoom_level = new_value
+            self.controls.image_resize_scale.set(new_value)
+            self.image_resize_factor = new_value
             self.update_grid()
 
     def reset_view(self):
-        self.zoom_level = 1.0
-        self.image_size_factor = 1.0
-        self.controls.zoom_scale.set(1.0)
-        self.controls.image_size_factor_scale.set(1.0)
+        self.image_resize_factor = 1.0
+        self.controls.image_resize_scale.set(1.0)
         self.pan_x = 0
         self.pan_y = 0
         self.update_grid()
 
-    def update_zoom(self, _=None):
-        self.zoom_level = float(self.controls.zoom_scale.get())
+    def update_image_resize(self, _=None):
+        self.image_resize_factor = float(self.controls.image_resize_scale.get())
         self.update_grid()
 
-    def mouse_zoom(self, event):
+    def mouse_resize(self, event):
         x, y = self.canvas_widget.canvas.canvasx(event.x), self.canvas_widget.canvas.canvasy(event.y)
 
         if event.num == 4 or event.delta > 0:
-            zoom_factor = 1.1
+            resize_factor = 1.1
         elif event.num == 5 or event.delta < 0:
-            zoom_factor = 0.9
+            resize_factor = 0.9
         else:
             return
 
-        new_zoom = self.zoom_level * zoom_factor
+        new_resize = self.image_resize_factor * resize_factor
 
-        if 0.1 <= new_zoom <= 10:
-            self.pan_x = x - (x - self.pan_x) * zoom_factor
-            self.pan_y = y - (y - self.pan_y) * zoom_factor
+        if 0.1 <= new_resize <= 10:
+            self.pan_x = x - (x - self.pan_x) * resize_factor
+            self.pan_y = y - (y - self.pan_y) * resize_factor
 
-            self.zoom_level = new_zoom
-            self.controls.zoom_scale.set(new_zoom)
+            self.image_resize_factor = new_resize
+            self.controls.image_resize_scale.set(new_resize)
 
             self.update_grid()
 
@@ -227,8 +216,7 @@ class ArtGridApp:
             self.root.after(100, self.update_grid)
             return
 
-        displayed_image, scaled_width, scaled_height = self.image_processor.resize_image(
-            self.zoom_level, self.image_size_factor)
+        displayed_image, scaled_width, scaled_height = self.image_processor.resize_image(self.image_resize_factor)
         
         self.canvas_widget.canvas.delete("all")
 
@@ -237,8 +225,8 @@ class ArtGridApp:
 
         self.canvas_widget.canvas.create_image(img_x, img_y, image=displayed_image, anchor=tk.NW)
 
-        scaled_grid_width = int(grid_width * self.zoom_level * self.image_size_factor)
-        scaled_grid_height = int(grid_height * self.zoom_level * self.image_size_factor)
+        scaled_grid_width = grid_width
+        scaled_grid_height = grid_height
 
         if scaled_grid_width < 5:
             scaled_grid_width = 5
@@ -258,7 +246,7 @@ class ArtGridApp:
         info = self.image_processor.get_image_info()
         grid_info = f"Grid: {grid_width}x{grid_height}px" if self.controls.grid_type.get() == 1 else f"Grid: {self.grid_size}px"
         self.status_label.config(
-            text=f"Loaded: {info['filename'] if info else 'None'} | Zoom: {self.zoom_level:.1f}x | {grid_info} | Color: {self.grid_color}")
+            text=f"Loaded: {info['filename'] if info else 'None'} | Image Resize: {self.image_resize_factor:.1f}x | {grid_info} | Color: {self.grid_color}")
 
     def export_image(self):
         if self.image_processor.original_image is None:
@@ -283,7 +271,7 @@ class ArtGridApp:
 
         success = self.grid_exporter.export_image_with_grid(
             self.image_processor.original_image, file_path, grid_width, grid_height,
-            self.line_thickness, self.grid_color, self.image_size_factor
+            self.line_thickness, self.grid_color, self.image_resize_factor
         )
         
         if success:

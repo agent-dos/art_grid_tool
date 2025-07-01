@@ -28,13 +28,13 @@ class ImageProcessor:
             }
         return None
     
-    def resize_image(self, zoom_level, image_size_factor):
+    def resize_image(self, resize_factor):
         if self.original_image is None:
             return None
         
         img_width, img_height = self.original_image.size
-        scaled_width = int(img_width * zoom_level * image_size_factor)
-        scaled_height = int(img_height * zoom_level * image_size_factor)
+        scaled_width = int(img_width * resize_factor)
+        scaled_height = int(img_height * resize_factor)
         
         resized_image = self.original_image.resize(
             (scaled_width, scaled_height), Image.LANCZOS)

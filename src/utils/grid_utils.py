@@ -65,22 +65,18 @@ class GridExporter:
         return result
     
     def export_image_with_grid(self, original_image, file_path, grid_width, grid_height, 
-                              line_thickness, grid_color, image_size_factor):
+                              line_thickness, grid_color, resize_factor):
         margin = max(30, min(grid_width, grid_height) // 2)
         
         img_width, img_height = original_image.size
         
-        export_width = int(img_width * image_size_factor)
-        export_height = int(img_height * image_size_factor)
+        export_width = int(img_width * resize_factor)
+        export_height = int(img_height * resize_factor)
         
         resized_image = original_image.resize((export_width, export_height), Image.LANCZOS)
-
-        # Adjust grid size based on the image size factor for consistent grid lines
-        scaled_grid_width = int(grid_width * image_size_factor)
-        scaled_grid_height = int(grid_height * image_size_factor)
         
         export_image = Image.new('RGBA', (export_width + margin * 2, export_height + margin * 2), (255, 255, 255, 255))
-        export_image.paste(original_image, (margin, margin))
+        export_image.paste(resized_image, (margin, margin))
         
         draw = ImageDraw.Draw(export_image)
         
@@ -89,20 +85,20 @@ class GridExporter:
         except IOError:
             font = ImageFont.load_default()
         
-        for x in range(0, export_width + 1, scaled_grid_width):
+        for x in range(0, export_width + 1, grid_width):
             draw.line([(x + margin, margin), (x + margin, export_height + margin)],
                      fill=grid_color, width=line_thickness)
         
-        for y in range(0, export_height + 1, scaled_grid_height):
+        for y in range(0, export_height + 1, grid_height):
             draw.line([(margin, y + margin), (export_width + margin, y + margin)],
                      fill=grid_color, width=line_thickness)
         
-        for x in range(0, export_width, scaled_grid_width):
-            col_letter = self.get_column_letter(x // scaled_grid_width)
-            cell_center_x = x + margin + scaled_grid_width // 2
+        for x in range(0, export_width, grid_width):
+            col_letter = self.get_column_letter(x // grid_width)
+            cell_center_x = x + margin + grid_width // 2
             
             text_width, text_height = draw.textsize(col_letter, font=font) if hasattr(
-                draw, 'textsize') else (scaled_grid_width // 3, scaled_grid_height // 3)
+                draw, 'textsize') else (grid_width // 3, grid_height // 3)
             
             draw.text(
                 (cell_center_x - text_width // 2, margin // 2 - text_height // 2),
@@ -111,12 +107,12 @@ class GridExporter:
                 font=font
             )
         
-        for y in range(0, export_height, scaled_grid_height):
-            row_num = str(y // scaled_grid_height + 1)
-            cell_center_y = y + margin + scaled_grid_height // 2
+        for y in range(0, export_height, grid_height):
+            row_num = str(y // grid_height + 1)
+            cell_center_y = y + margin + grid_height // 2
             
             text_width, text_height = draw.textsize(row_num, font=font) if hasattr(
-                draw, 'textsize') else (scaled_grid_width // 3, scaled_grid_height // 3)
+                draw, 'textsize') else (grid_width // 3, grid_height // 3)
             
             draw.text(
                 (margin // 2 - text_width // 2, cell_center_y - text_height // 2),

@@ -41,8 +41,7 @@ class ControlPanels:
         self.create_square_grid_controls()
         self.create_rectangular_grid_controls()
         self.create_thickness_controls()
-        self.create_image_size_factor_controls()
-        self.create_zoom_controls()
+        self.create_image_resize_controls()
 
     def create_square_grid_controls(self):
         self.square_grid_frame = Frame(self.slider_frame)
@@ -120,38 +119,20 @@ class ControlPanels:
         Button(thickness_control_frame, text="+",
             command=lambda: self.callbacks['adjust_thickness'](1)).pack(side=tk.LEFT)
 
-    def create_image_size_factor_controls(self):
-        image_size_factor_frame = Frame(self.slider_frame)
-        image_size_factor_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
+    def create_image_resize_controls(self):
+        image_resize_frame = Frame(self.slider_frame)
+        image_resize_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
 
-        Label(image_size_factor_frame, text="Image Size Factor:").pack(side=tk.TOP)
+        Label(image_resize_frame, text="Image Resize:").pack(side=tk.TOP)
 
-        image_size_factor_control_frame = Frame(image_size_factor_frame)
-        image_size_factor_control_frame.pack(side=tk.TOP, fill=tk.X)
+        image_resize_control_frame = Frame(image_resize_frame)
+        image_resize_control_frame.pack(side=tk.TOP, fill=tk.X)
 
-        Button(image_size_factor_control_frame, text="-",
-            command=lambda: self.callbacks['adjust_image_size_factor'](-0.1)).pack(side=tk.LEFT)
-        self.image_size_factor_scale = Scale(image_size_factor_control_frame, from_=0.1, to=10, resolution=0.1, orient=tk.HORIZONTAL,
-                                length=150, command=self.callbacks['update_grid'])
-        self.image_size_factor_scale.set(1.0)
-        self.image_size_factor_scale.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        Button(image_size_factor_control_frame, text="+",
-            command=lambda: self.callbacks['adjust_image_size_factor'](0.1)).pack(side=tk.LEFT)
-
-    def create_zoom_controls(self):
-        zoom_frame = Frame(self.slider_frame)
-        zoom_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
-
-        Label(zoom_frame, text="Zoom:").pack(side=tk.TOP)
-
-        zoom_control_frame = Frame(zoom_frame)
-        zoom_control_frame.pack(side=tk.TOP, fill=tk.X)
-
-        Button(zoom_control_frame, text="-",
-            command=lambda: self.callbacks['adjust_zoom'](-0.1)).pack(side=tk.LEFT)
-        self.zoom_scale = Scale(zoom_control_frame, from_=0.1, to=10, resolution=0.1, orient=tk.HORIZONTAL,
-                                length=150, command=self.callbacks['update_zoom'])
-        self.zoom_scale.set(1.0)
-        self.zoom_scale.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        Button(zoom_control_frame, text="+",
-            command=lambda: self.callbacks['adjust_zoom'](0.1)).pack(side=tk.LEFT)
+        Button(image_resize_control_frame, text="-",
+            command=lambda: self.callbacks['adjust_image_resize'](-0.1)).pack(side=tk.LEFT)
+        self.image_resize_scale = Scale(image_resize_control_frame, from_=0.1, to=10, resolution=0.1, orient=tk.HORIZONTAL,
+                                length=150, command=self.callbacks['update_image_resize'])
+        self.image_resize_scale.set(1.0)
+        self.image_resize_scale.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        Button(image_resize_control_frame, text="+",
+            command=lambda: self.callbacks['adjust_image_resize'](0.1)).pack(side=tk.LEFT)
