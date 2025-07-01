@@ -38,6 +38,4 @@ class ImageProcessor:
         
         resized_image = self.original_image.resize(
             (scaled_width, scaled_height), Image.LANCZOS)
-        self.displayed_image = ImageTk.PhotoImage(resized_image)
-        
-        return self.displayed_image, scaled_width, scaled_height
+        return resized_image, scaled_width, scaled_height

@@ -10,34 +10,42 @@ class GridRenderer:
 
     
     def draw_grid_on_canvas(self, canvas, img_x, img_y, scaled_width, scaled_height, 
-                           scaled_grid_width, scaled_grid_height, line_thickness, grid_color):
-        for x in range(0, scaled_width + 1, scaled_grid_width):
-            x_pos = img_x + x
-            canvas.create_line(x_pos, img_y, x_pos, img_y + scaled_height,
-                              width=line_thickness, fill=grid_color)
-        
-        for y in range(0, scaled_height + 1, scaled_grid_height):
-            y_pos = img_y + y
-            canvas.create_line(img_x, y_pos, img_x + scaled_width, y_pos,
-                              width=line_thickness, fill=grid_color)
+                           scaled_grid_width, scaled_grid_height, line_thickness, grid_color, canvas_zoom_factor):
+        # Draw vertical lines
+        for x_unzoomed in range(0, scaled_width + 1, scaled_grid_width):
+            x_pos = img_x + (x_unzoomed * canvas_zoom_factor)
+            y_start = img_y
+            y_end = img_y + (scaled_height * canvas_zoom_factor)
+            canvas.create_line(x_pos, y_start, x_pos, y_end,
+                              width=line_thickness, fill=grid_color, tags="grid_tag")
+
+        # Draw horizontal lines
+        for y_unzoomed in range(0, scaled_height + 1, scaled_grid_height):
+            y_pos = img_y + (y_unzoomed * canvas_zoom_factor)
+            x_start = img_x
+            x_end = img_x + (scaled_width * canvas_zoom_factor)
+            canvas.create_line(x_start, y_pos, x_end, y_pos,
+                              width=line_thickness, fill=grid_color, tags="grid_tag")
     
     def draw_coordinates_on_canvas(self, canvas, img_x, img_y, scaled_width, scaled_height,
-                                  scaled_grid_width, scaled_grid_height):
+                                  scaled_grid_width, scaled_grid_height, canvas_zoom_factor):
         font_size = max(8, min(12, min(scaled_grid_width, scaled_grid_height) // 4))
-        
-        for x in range(0, scaled_width, scaled_grid_width):
-            col_num = x // scaled_grid_width + 1
-            cell_center_x = img_x + x + scaled_grid_width // 2
-            canvas.create_text(cell_center_x, img_y - 15,
+
+        # Draw column numbers
+        for x_unzoomed in range(0, scaled_width, scaled_grid_width):
+            col_num = x_unzoomed // scaled_grid_width + 1
+            cell_center_x = img_x + (x_unzoomed + scaled_grid_width // 2) * canvas_zoom_factor
+            canvas.create_text(cell_center_x, img_y - 15, # -15 offset for text position
                               text=str(col_num), fill="blue",
-                              font=("Arial", font_size))
-        
-        for y in range(0, scaled_height, scaled_grid_height):
-            row_num = y // scaled_grid_height + 1
-            cell_center_y = img_y + y + scaled_grid_height // 2
-            canvas.create_text(img_x - 15, cell_center_y,
+                              font=("Arial", font_size), tags="coordinate_tag")
+
+        # Draw row numbers
+        for y_unzoomed in range(0, scaled_height, scaled_grid_height):
+            row_num = y_unzoomed // scaled_grid_height + 1
+            cell_center_y = img_y + (y_unzoomed + scaled_grid_height // 2) * canvas_zoom_factor
+            canvas.create_text(img_x - 15, cell_center_y, # -15 offset for text position
                               text=str(row_num), fill="blue",
-                              font=("Arial", font_size))
+                              font=("Arial", font_size), tags="coordinate_tag")
 
 
 class GridExporter:
