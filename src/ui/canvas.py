@@ -20,12 +20,6 @@ class ImageCanvas:
         self.canvas.bind("<ButtonPress-1>", self.callbacks['start_drag'])
         self.canvas.bind("<B1-Motion>", self.callbacks['drag'])
         self.canvas.bind("<ButtonRelease-1>", self.callbacks['end_drag'])
-        self.canvas.bind("<ButtonPress-3>", self.callbacks['start_line_draw'])
-        self.canvas.bind("<B3-Motion>", self.callbacks['draw_line_drag'])
-        self.canvas.bind("<ButtonRelease-3>", self.callbacks['end_line_draw'])
-        self.canvas.bind("<MouseWheel>", self.callbacks['mouse_resize'])
-        self.canvas.bind("<Button-4>", self.callbacks['mouse_resize'])
-        self.canvas.bind("<Button-5>", self.callbacks['mouse_resize'])
 
     def draw_line(self, x1, y1, x2, y2, color="black", width=1):
         return self.canvas.create_line(x1, y1, x2, y2, fill=color, width=width)

@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import Scale, Label, Button, Frame, Radiobutton, IntVar, ttk
+from tkinter import Scale, Label, Button, Frame, Radiobutton, IntVar
 
 
 class ControlPanels:
@@ -8,32 +8,12 @@ class ControlPanels:
         self.callbacks = callbacks
         self.grid_type = IntVar(value=0)
 
-        self.notebook = ttk.Notebook(root)
-        self.notebook.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
-
-        self.grid_tab = Frame(self.notebook)
-        self.drawing_tab = Frame(self.notebook)
-
-        self.notebook.add(self.grid_tab, text="Grid Controls")
-        self.notebook.add(self.drawing_tab, text="Drawing Tools")
-
-        self.create_grid_controls(self.grid_tab)
-        self.create_drawing_controls(self.drawing_tab)
+        self.create_grid_controls(root)
 
     def create_grid_controls(self, parent_frame):
         self.create_control_frame(parent_frame)
         self.create_grid_type_frame(parent_frame)
         self.create_slider_frame(parent_frame)
-
-    def create_drawing_controls(self, parent_frame):
-        drawing_control_frame = Frame(parent_frame)
-        drawing_control_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
-        Button(drawing_control_frame, text="Clear Lines",
-            command=self.callbacks['clear_lines']).pack(side=tk.LEFT, padx=5)
-        Button(drawing_control_frame, text="Clear Bezier Curves",
-            command=self.callbacks['clear_bezier_curves']).pack(side=tk.LEFT, padx=5)
-        Button(drawing_control_frame, text="Toggle Line Edit",
-            command=self.callbacks['toggle_line_edit_mode']).pack(side=tk.LEFT, padx=5)
 
     def create_control_frame(self, parent_frame):
         self.control_frame = Frame(parent_frame)
@@ -64,7 +44,6 @@ class ControlPanels:
         self.create_square_grid_controls(self.slider_frame)
         self.create_rectangular_grid_controls(self.slider_frame)
         self.create_thickness_controls(self.slider_frame)
-        self.create_image_resize_controls(self.slider_frame)
         self.create_canvas_zoom_controls(self.slider_frame)
 
     def create_square_grid_controls(self, parent_frame):
@@ -143,23 +122,7 @@ class ControlPanels:
         Button(thickness_control_frame, text="+",
             command=lambda: self.callbacks['adjust_thickness'](1)).pack(side=tk.LEFT)
 
-    def create_image_resize_controls(self, parent_frame):
-        image_resize_frame = Frame(parent_frame)
-        image_resize_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
-
-        Label(image_resize_frame, text="Image Resize:").pack(side=tk.TOP)
-
-        image_resize_control_frame = Frame(image_resize_frame)
-        image_resize_control_frame.pack(side=tk.TOP, fill=tk.X)
-
-        Button(image_resize_control_frame, text="-",
-            command=lambda: self.callbacks['adjust_image_resize'](-0.1)).pack(side=tk.LEFT)
-        self.image_resize_scale = Scale(image_resize_control_frame, from_=0.1, to=10, resolution=0.1, orient=tk.HORIZONTAL,
-                                length=150, command=self.callbacks['update_image_resize'])
-        self.image_resize_scale.set(1.0)
-        self.image_resize_scale.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        Button(image_resize_control_frame, text="+",
-            command=lambda: self.callbacks['adjust_image_resize'](0.1)).pack(side=tk.LEFT)
+    
 
     def create_canvas_zoom_controls(self, parent_frame):
         canvas_zoom_frame = Frame(parent_frame)
