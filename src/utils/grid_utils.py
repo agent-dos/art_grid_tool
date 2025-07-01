@@ -7,16 +7,7 @@ class GridRenderer:
     def __init__(self):
         pass
     
-    @staticmethod
-    def get_column_letter(col_num):
-        result = ""
-        while col_num >= 0:
-            remainder = col_num % 26
-            result = string.ascii_uppercase[remainder] + result
-            col_num = col_num // 26 - 1
-            if col_num < 0:
-                break
-        return result
+
     
     def draw_grid_on_canvas(self, canvas, img_x, img_y, scaled_width, scaled_height, 
                            scaled_grid_width, scaled_grid_height, line_thickness, grid_color):
@@ -35,10 +26,10 @@ class GridRenderer:
         font_size = max(8, min(12, min(scaled_grid_width, scaled_grid_height) // 4))
         
         for x in range(0, scaled_width, scaled_grid_width):
-            col_letter = self.get_column_letter(x // scaled_grid_width)
+            col_num = x // scaled_grid_width + 1
             cell_center_x = img_x + x + scaled_grid_width // 2
             canvas.create_text(cell_center_x, img_y - 15,
-                              text=col_letter, fill="blue",
+                              text=str(col_num), fill="blue",
                               font=("Arial", font_size))
         
         for y in range(0, scaled_height, scaled_grid_height):
@@ -53,16 +44,7 @@ class GridExporter:
     def __init__(self):
         pass
     
-    @staticmethod
-    def get_column_letter(col_num):
-        result = ""
-        while col_num >= 0:
-            remainder = col_num % 26
-            result = string.ascii_uppercase[remainder] + result
-            col_num = col_num // 26 - 1
-            if col_num < 0:
-                break
-        return result
+
     
     def export_image_with_grid(self, original_image, file_path, grid_width, grid_height, 
                               line_thickness, grid_color, resize_factor):
@@ -94,15 +76,15 @@ class GridExporter:
                      fill=grid_color, width=line_thickness)
         
         for x in range(0, export_width, grid_width):
-            col_letter = self.get_column_letter(x // grid_width)
+            col_num = x // grid_width + 1
             cell_center_x = x + margin + grid_width // 2
             
-            text_width, text_height = draw.textsize(col_letter, font=font) if hasattr(
+            text_width, text_height = draw.textsize(str(col_num), font=font) if hasattr(
                 draw, 'textsize') else (grid_width // 3, grid_height // 3)
             
             draw.text(
                 (cell_center_x - text_width // 2, margin // 2 - text_height // 2),
-                col_letter,
+                str(col_num),
                 fill="blue",
                 font=font
             )
