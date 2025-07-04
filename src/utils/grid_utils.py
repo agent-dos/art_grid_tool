@@ -55,7 +55,7 @@ class GridExporter:
 
     
     def export_image_with_grid(self, original_image, file_path, grid_width, grid_height, 
-                              line_thickness, grid_color, resize_factor):
+                              line_thickness, grid_color, resize_factor, dpi=96):
         margin = max(30, min(grid_width, grid_height) // 2)
         
         img_width, img_height = original_image.size
@@ -63,32 +63,45 @@ class GridExporter:
         export_width = int(img_width * resize_factor)
         export_height = int(img_height * resize_factor)
         
-        resized_image = original_image.resize((export_width, export_height), Image.LANCZOS)
+        # Use NEAREST neighbor for crisp pixel-perfect scaling
+        resized_image = original_image.resize((export_width, export_height), Image.NEAREST)
         
         export_image = Image.new('RGBA', (export_width + margin * 2, export_height + margin * 2), (255, 255, 255, 255))
         export_image.paste(resized_image, (margin, margin))
         
         draw = ImageDraw.Draw(export_image)
         
+        # Scale grid dimensions by resize factor for crisp rendering
+        scaled_grid_width = int(grid_width * resize_factor)
+        scaled_grid_height = int(grid_height * resize_factor)
+        scaled_line_thickness = max(1, int(line_thickness * resize_factor))
+        
         try:
-            font = ImageFont.truetype("arial.ttf", max(10, min(16, min(grid_width, grid_height) // 3)))
+            # Scale font size based on grid dimensions and zoom factor
+            font_size = max(10, min(16, min(scaled_grid_width, scaled_grid_height) // 3))
+            font = ImageFont.truetype("arial.ttf", font_size)
         except IOError:
             font = ImageFont.load_default()
         
-        for x in range(0, export_width + 1, grid_width):
-            draw.line([(x + margin, margin), (x + margin, export_height + margin)],
-                     fill=grid_color, width=line_thickness)
+        # Draw vertical grid lines (crisp, pixel-aligned)
+        for x in range(0, export_width + 1, scaled_grid_width):
+            x_pos = x + margin
+            draw.line([(x_pos, margin), (x_pos, export_height + margin)],
+                     fill=grid_color, width=scaled_line_thickness)
         
-        for y in range(0, export_height + 1, grid_height):
-            draw.line([(margin, y + margin), (export_width + margin, y + margin)],
-                     fill=grid_color, width=line_thickness)
+        # Draw horizontal grid lines (crisp, pixel-aligned)
+        for y in range(0, export_height + 1, scaled_grid_height):
+            y_pos = y + margin
+            draw.line([(margin, y_pos), (export_width + margin, y_pos)],
+                     fill=grid_color, width=scaled_line_thickness)
         
-        for x in range(0, export_width, grid_width):
-            col_num = x // grid_width + 1
-            cell_center_x = x + margin + grid_width // 2
+        # Draw column numbers using scaled grid dimensions
+        for x in range(0, export_width, scaled_grid_width):
+            col_num = x // scaled_grid_width + 1
+            cell_center_x = x + margin + scaled_grid_width // 2
             
             text_width, text_height = draw.textsize(str(col_num), font=font) if hasattr(
-                draw, 'textsize') else (grid_width // 3, grid_height // 3)
+                draw, 'textsize') else (scaled_grid_width // 3, scaled_grid_height // 3)
             
             draw.text(
                 (cell_center_x - text_width // 2, margin // 2 - text_height // 2),
@@ -97,12 +110,13 @@ class GridExporter:
                 font=font
             )
         
-        for y in range(0, export_height, grid_height):
-            row_num = str(y // grid_height + 1)
-            cell_center_y = y + margin + grid_height // 2
+        # Draw row numbers using scaled grid dimensions
+        for y in range(0, export_height, scaled_grid_height):
+            row_num = str(y // scaled_grid_height + 1)
+            cell_center_y = y + margin + scaled_grid_height // 2
             
             text_width, text_height = draw.textsize(row_num, font=font) if hasattr(
-                draw, 'textsize') else (grid_width // 3, grid_height // 3)
+                draw, 'textsize') else (scaled_grid_width // 3, scaled_grid_height // 3)
             
             draw.text(
                 (margin // 2 - text_width // 2, cell_center_y - text_height // 2),
@@ -111,5 +125,10 @@ class GridExporter:
                 font=font
             )
         
-        export_image.save(file_path)
+        # Save with correct DPI for accurate measurements
+        try:
+            export_image.save(file_path, dpi=(dpi, dpi))
+        except Exception as e:
+            # Fallback: save without DPI if there's an error
+            export_image.save(file_path)
         return True

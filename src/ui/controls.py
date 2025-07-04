@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import Scale, Label, Button, Frame, Radiobutton, IntVar
+from tkinter import Scale, Label, Button, Frame, Radiobutton, IntVar, StringVar, Entry
+from tkinter.ttk import Combobox
 
 
 class ControlPanels:
@@ -7,12 +8,18 @@ class ControlPanels:
         self.root = root
         self.callbacks = callbacks
         self.grid_type = IntVar(value=0)
+        self.grid_unit = StringVar(value='px')
+        self.cell_count_mode = IntVar(value=0)  # 0 = manual size, 1 = cell count, 2 = fixed cell size
+        self.target_cells = StringVar(value='20')
+        self.fixed_cell_size = StringVar(value='1.0')
+        self.fixed_cell_unit = StringVar(value='cm')
 
         self.create_grid_controls(root)
 
     def create_grid_controls(self, parent_frame):
         self.create_control_frame(parent_frame)
         self.create_grid_type_frame(parent_frame)
+        self.create_cell_count_frame(parent_frame)
         self.create_slider_frame(parent_frame)
 
     def create_control_frame(self, parent_frame):
@@ -37,6 +44,45 @@ class ControlPanels:
         Radiobutton(self.grid_type_frame, text="Rectangular Grid", variable=self.grid_type, value=1,
                     command=self.callbacks['update_grid_type']).pack(side=tk.LEFT, padx=5)
 
+    def create_cell_count_frame(self, parent_frame):
+        self.cell_count_frame = Frame(parent_frame)
+        self.cell_count_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
+
+        # First row: Radio buttons
+        radio_frame = Frame(self.cell_count_frame)
+        radio_frame.pack(side=tk.TOP, fill=tk.X)
+        
+        Radiobutton(radio_frame, text="Manual Size", variable=self.cell_count_mode, value=0,
+                    command=self.callbacks['update_grid_mode']).pack(side=tk.LEFT, padx=5)
+        Radiobutton(radio_frame, text="Cell Count", variable=self.cell_count_mode, value=1,
+                    command=self.callbacks['update_grid_mode']).pack(side=tk.LEFT, padx=5)
+        Radiobutton(radio_frame, text="Fixed Cell Size", variable=self.cell_count_mode, value=2,
+                    command=self.callbacks['update_grid_mode']).pack(side=tk.LEFT, padx=5)
+        
+        # Second row: Controls
+        controls_frame = Frame(self.cell_count_frame)
+        controls_frame.pack(side=tk.TOP, fill=tk.X, pady=2)
+        
+        # Cell count controls
+        Label(controls_frame, text="Target Cells:").pack(side=tk.LEFT, padx=5)
+        self.cell_count_entry = Entry(controls_frame, textvariable=self.target_cells, width=8)
+        self.cell_count_entry.pack(side=tk.LEFT, padx=5)
+        self.cell_count_entry.bind('<Return>', self.callbacks['update_grid'])
+        self.cell_count_entry.bind('<FocusOut>', self.callbacks['update_grid'])
+        
+        # Fixed cell size controls
+        Label(controls_frame, text="Cell Size:").pack(side=tk.LEFT, padx=(20, 5))
+        self.fixed_cell_entry = Entry(controls_frame, textvariable=self.fixed_cell_size, width=8)
+        self.fixed_cell_entry.pack(side=tk.LEFT, padx=5)
+        self.fixed_cell_entry.bind('<Return>', self.callbacks['update_grid'])
+        self.fixed_cell_entry.bind('<FocusOut>', self.callbacks['update_grid'])
+        
+        self.fixed_unit_combo = Combobox(controls_frame, textvariable=self.fixed_cell_unit, 
+                                        values=['px', 'cm', 'mm', 'inch'], 
+                                        state='readonly', width=6)
+        self.fixed_unit_combo.pack(side=tk.LEFT, padx=5)
+        self.fixed_unit_combo.bind('<<ComboboxSelected>>', self.callbacks['update_grid'])
+
     def create_slider_frame(self, parent_frame):
         self.slider_frame = Frame(parent_frame)
         self.slider_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
@@ -53,20 +99,42 @@ class ControlPanels:
 
         Label(self.square_grid_frame, text="Grid Size:").pack(side=tk.TOP)
 
+        # Unit selection
+        unit_frame = Frame(self.square_grid_frame)
+        unit_frame.pack(side=tk.TOP, fill=tk.X, pady=2)
+        
+        Label(unit_frame, text="Unit:").pack(side=tk.LEFT)
+        self.unit_combo = Combobox(unit_frame, textvariable=self.grid_unit, 
+                                  values=['px', 'cm', 'mm', 'inch'], 
+                                  state='readonly', width=8)
+        self.unit_combo.pack(side=tk.LEFT, padx=5)
+        self.unit_combo.bind('<<ComboboxSelected>>', self.callbacks['update_grid'])
+
         grid_control_frame = Frame(self.square_grid_frame)
         grid_control_frame.pack(side=tk.TOP, fill=tk.X)
 
         Button(grid_control_frame, text="-",
             command=lambda: self.callbacks['adjust_grid_size'](-1)).pack(side=tk.LEFT)
-        self.grid_size_scale = Scale(grid_control_frame, from_=10, to=200, orient=tk.HORIZONTAL,
-                                    length=150, command=self.callbacks['update_grid'])
-        self.grid_size_scale.set(50)
+        self.grid_size_scale = Scale(grid_control_frame, from_=0.1, to=50, orient=tk.HORIZONTAL,
+                                    length=150, command=self.callbacks['update_grid'], resolution=0.1)
+        self.grid_size_scale.set(1.0)
         self.grid_size_scale.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         Button(grid_control_frame, text="+",
             command=lambda: self.callbacks['adjust_grid_size'](1)).pack(side=tk.LEFT)
 
     def create_rectangular_grid_controls(self, parent_frame):
         self.rect_grid_frame = Frame(parent_frame)
+
+        # Unit selection for rectangular grid
+        unit_frame_rect = Frame(self.rect_grid_frame)
+        unit_frame_rect.pack(side=tk.TOP, fill=tk.X, pady=2)
+        
+        Label(unit_frame_rect, text="Unit:").pack(side=tk.LEFT)
+        self.unit_combo_rect = Combobox(unit_frame_rect, textvariable=self.grid_unit, 
+                                       values=['px', 'cm', 'mm', 'inch'], 
+                                       state='readonly', width=8)
+        self.unit_combo_rect.pack(side=tk.LEFT, padx=5)
+        self.unit_combo_rect.bind('<<ComboboxSelected>>', self.callbacks['update_grid'])
 
         width_frame = Frame(self.rect_grid_frame)
         width_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
@@ -78,9 +146,9 @@ class ControlPanels:
 
         Button(width_control_frame, text="-",
             command=lambda: self.callbacks['adjust_grid_width'](-1)).pack(side=tk.LEFT)
-        self.grid_width_scale = Scale(width_control_frame, from_=10, to=200, orient=tk.HORIZONTAL,
-                                    length=150, command=self.callbacks['update_grid'])
-        self.grid_width_scale.set(50)
+        self.grid_width_scale = Scale(width_control_frame, from_=0.1, to=50, orient=tk.HORIZONTAL,
+                                    length=150, command=self.callbacks['update_grid'], resolution=0.1)
+        self.grid_width_scale.set(1.0)
         self.grid_width_scale.pack(
             side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         Button(width_control_frame, text="+",
@@ -96,9 +164,9 @@ class ControlPanels:
 
         Button(height_control_frame, text="-",
             command=lambda: self.callbacks['adjust_grid_height'](-1)).pack(side=tk.LEFT)
-        self.grid_height_scale = Scale(height_control_frame, from_=10, to=200, orient=tk.HORIZONTAL,
-                                    length=150, command=self.callbacks['update_grid'])
-        self.grid_height_scale.set(50)
+        self.grid_height_scale = Scale(height_control_frame, from_=0.1, to=50, orient=tk.HORIZONTAL,
+                                    length=150, command=self.callbacks['update_grid'], resolution=0.1)
+        self.grid_height_scale.set(1.0)
         self.grid_height_scale.pack(
             side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         Button(height_control_frame, text="+",
