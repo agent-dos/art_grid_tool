@@ -18,8 +18,6 @@ class ArtGridApp:
         self.root.geometry("1000x800")
 
         self.grid_size = 1.0
-        self.grid_width = 1.0
-        self.grid_height = 1.0
         self.line_thickness = 1
         self.image_resize_factor = 1.0
         self.canvas_zoom_factor = 1.0
@@ -41,11 +39,7 @@ class ArtGridApp:
             'reset_view': self.reset_view,
             'export_image': self.export_image,
             'choose_color': self.choose_color,
-            'update_grid_type': self.update_grid_type,
-            'update_grid_mode': self.update_grid_mode,
             'adjust_grid_size': self.adjust_grid_size,
-            'adjust_grid_width': self.adjust_grid_width,
-            'adjust_grid_height': self.adjust_grid_height,
             'adjust_thickness': self.adjust_thickness,
             'update_grid': self.update_grid,
             'start_drag': self.start_drag,
@@ -63,61 +57,33 @@ class ArtGridApp:
             root, text="Ready. Please load an image.", bd=1, relief=tk.SUNKEN, anchor=tk.W)
         self.status_label.pack(side=tk.BOTTOM, fill=tk.X)
 
-    def update_grid_type(self):
-        if self.controls.grid_type.get() == 0:
-            self.controls.rect_grid_frame.pack_forget()
-            self.controls.square_grid_frame.pack(
-                side=tk.LEFT, fill=tk.X, expand=True, padx=10)
-            
-            self.grid_width = self.grid_size
-            self.grid_height = self.grid_size
-            self.controls.grid_width_scale.set(self.grid_width)
-            self.controls.grid_height_scale.set(self.grid_height)
-        else:
-            self.controls.square_grid_frame.pack_forget()
-            self.controls.rect_grid_frame.pack(
-                side=tk.LEFT, fill=tk.X, expand=True, padx=10)
-            
-            self.grid_size = self.grid_width
-            self.controls.grid_size_scale.set(self.grid_size)
-        
-        self.update_grid()
 
-    def update_grid_mode(self):
-        self.update_grid()
 
-    def calculate_grid_from_cell_count(self, target_cells, image_width, image_height):
-        """Calculate grid size to achieve target number of cells while maintaining aspect ratio"""
+    def calculate_resize_factor(self):
+        """Calculate the resize factor based on user's target dimensions"""
+        if not self.controls.resize_enabled.get():
+            return 1.0
+            
         try:
-            target_cells = int(target_cells)
-            if target_cells <= 0:
-                return 50, 50
+            target_value = float(self.controls.resize_value.get())
+            target_unit = self.controls.resize_unit.get()
+            dimension = self.controls.resize_dimension.get()
+            
+            # Convert target to pixels
+            target_pixels = UnitConverter.to_pixels(target_value, target_unit)
+            
+            # Get current image dimensions
+            original_width, original_height = self.image_processor.original_image.size
+            
+            if dimension == 'width':
+                resize_factor = target_pixels / original_width
+            else:  # height
+                resize_factor = target_pixels / original_height
                 
-            # Calculate aspect ratio
-            aspect_ratio = image_width / image_height
+            return max(0.1, min(10.0, resize_factor))  # Clamp between 0.1x and 10x
             
-            # Calculate cells per row and column to maintain aspect ratio
-            # target_cells = cells_x * cells_y
-            # aspect_ratio = cells_x / cells_y
-            # So: cells_x = sqrt(target_cells * aspect_ratio)
-            #     cells_y = sqrt(target_cells / aspect_ratio)
-            
-            import math
-            cells_x = math.sqrt(target_cells * aspect_ratio)
-            cells_y = math.sqrt(target_cells / aspect_ratio)
-            
-            # Round to reasonable integers
-            cells_x = max(1, round(cells_x))
-            cells_y = max(1, round(cells_y))
-            
-            # Calculate grid size based on image dimensions
-            grid_width = max(1, image_width // cells_x)
-            grid_height = max(1, image_height // cells_y)
-            
-            return grid_width, grid_height
-            
-        except (ValueError, ZeroDivisionError):
-            return 50, 50
+        except (ValueError, AttributeError, ZeroDivisionError):
+            return 1.0
 
     def load_image(self):
         file_path = filedialog.askopenfilename(
@@ -156,51 +122,6 @@ class ArtGridApp:
         if 0.1 <= new_value <= 50:
             self.controls.grid_size_scale.set(new_value)
             self.grid_size = new_value
-            
-            if self.controls.grid_type.get() == 0:
-                self.grid_width = new_value
-                self.grid_height = new_value
-                self.controls.grid_width_scale.set(new_value)
-                self.controls.grid_height_scale.set(new_value)
-            
-            self.update_grid()
-
-    def adjust_grid_width(self, amount):
-        current_unit = self.controls.grid_unit.get()
-        
-        # Adjust increment based on unit
-        if current_unit == 'mm':
-            increment = amount * 0.1
-        elif current_unit == 'cm':
-            increment = amount * 0.1
-        elif current_unit == 'inch':
-            increment = amount * 0.1
-        else:  # px
-            increment = amount
-            
-        new_value = self.controls.grid_width_scale.get() + increment
-        if 0.1 <= new_value <= 50:
-            self.controls.grid_width_scale.set(new_value)
-            self.grid_width = new_value
-            self.update_grid()
-
-    def adjust_grid_height(self, amount):
-        current_unit = self.controls.grid_unit.get()
-        
-        # Adjust increment based on unit
-        if current_unit == 'mm':
-            increment = amount * 0.1
-        elif current_unit == 'cm':
-            increment = amount * 0.1
-        elif current_unit == 'inch':
-            increment = amount * 0.1
-        else:  # px
-            increment = amount
-            
-        new_value = self.controls.grid_height_scale.get() + increment
-        if 0.1 <= new_value <= 50:
-            self.controls.grid_height_scale.set(new_value)
-            self.grid_height = new_value
             self.update_grid()
 
     def adjust_thickness(self, amount):
@@ -222,6 +143,8 @@ class ArtGridApp:
         self.controls.canvas_zoom_scale.set(1.0)
         self.pan_x = 0
         self.pan_y = 0
+        # Reset image resize controls
+        self.controls.resize_enabled.set(0)
         self.update_grid()
 
     def update_image_resize(self, _=None):
@@ -292,40 +215,11 @@ class ArtGridApp:
         # Get the current unit
         current_unit = self.controls.grid_unit.get()
 
-        # Check the grid mode
-        if self.controls.cell_count_mode.get() == 1:
-            # Cell count mode: calculate grid size based on target cells
-            img_width, img_height = self.image_processor.original_image.size
-            target_cells = self.controls.target_cells.get()
-            calculated_width, calculated_height = self.calculate_grid_from_cell_count(
-                target_cells, img_width, img_height)
-            grid_width = calculated_width
-            grid_height = calculated_height
-        elif self.controls.cell_count_mode.get() == 2:
-            # Fixed cell size mode: use specified cell size
-            try:
-                fixed_size = float(self.controls.fixed_cell_size.get())
-                fixed_unit = self.controls.fixed_cell_unit.get()
-                grid_width = int(UnitConverter.to_pixels(fixed_size, fixed_unit))
-                grid_height = int(UnitConverter.to_pixels(fixed_size, fixed_unit))
-                # Ensure minimum size
-                grid_width = max(1, grid_width)
-                grid_height = max(1, grid_height)
-            except (ValueError, AttributeError):
-                grid_width = grid_height = 50  # Default fallback
-        else:
-            # Manual size mode: use the controls
-            if self.controls.grid_type.get() == 0:
-                self.grid_size = self.controls.grid_size_scale.get()
-                # Convert grid size to pixels
-                grid_width = int(UnitConverter.to_pixels(self.grid_size, current_unit))
-                grid_height = int(UnitConverter.to_pixels(self.grid_size, current_unit))
-            else:
-                self.grid_width = self.controls.grid_width_scale.get()
-                self.grid_height = self.controls.grid_height_scale.get()
-                # Convert grid dimensions to pixels
-                grid_width = int(UnitConverter.to_pixels(self.grid_width, current_unit))
-                grid_height = int(UnitConverter.to_pixels(self.grid_height, current_unit))
+        # Manual size mode: use square grid controls
+        self.grid_size = self.controls.grid_size_scale.get()
+        # Convert grid size to pixels
+        grid_width = int(UnitConverter.to_pixels(self.grid_size, current_unit))
+        grid_height = int(UnitConverter.to_pixels(self.grid_size, current_unit))
 
         self.line_thickness = self.controls.thickness_scale.get()
 
@@ -336,7 +230,9 @@ class ArtGridApp:
             self.root.after(100, self.update_grid)
             return
 
-        displayed_image, original_scaled_width, original_scaled_height = self.image_processor.resize_image(self.image_resize_factor)
+        # Calculate resize factor based on user input
+        target_resize_factor = self.calculate_resize_factor()
+        displayed_image, original_scaled_width, original_scaled_height = self.image_processor.resize_image(target_resize_factor)
         
         # Apply canvas zoom to the image
         scaled_width = int(original_scaled_width * self.canvas_zoom_factor)
@@ -361,6 +257,7 @@ class ArtGridApp:
         if displayed_image:
             self.canvas_widget.canvas.create_image(img_x, img_y, image=displayed_image, anchor=tk.NW, tags="image_tag")
 
+        # Grid size should remain constant in actual units, not scaled with image
         scaled_grid_width = grid_width
         scaled_grid_height = grid_height
 
@@ -381,47 +278,41 @@ class ArtGridApp:
 
         info = self.image_processor.get_image_info()
         
-        # Helper function to show grid size in multiple units
-        def format_grid_size_multiunit(width_px, height_px):
-            px_info = f"{width_px}x{height_px}px"
-            cm_w = UnitConverter.from_pixels(width_px, 'cm')
-            cm_h = UnitConverter.from_pixels(height_px, 'cm')
-            mm_w = UnitConverter.from_pixels(width_px, 'mm')
-            mm_h = UnitConverter.from_pixels(height_px, 'mm')
-            inch_w = UnitConverter.from_pixels(width_px, 'inch')
-            inch_h = UnitConverter.from_pixels(height_px, 'inch')
+        # Create image size tooltip with all units
+        size_info = ""
+        if info and self.image_processor.original_image:
+            original_width, original_height = self.image_processor.original_image.size
             
-            return f"{px_info} | {cm_w:.1f}x{cm_h:.1f}cm | {mm_w:.0f}x{mm_h:.0f}mm | {inch_w:.2f}x{inch_h:.2f}in"
-        
-        if self.controls.cell_count_mode.get() == 1:
-            # Cell count mode
-            img_width, img_height = self.image_processor.original_image.size
-            actual_cells_x = img_width // grid_width
-            actual_cells_y = img_height // grid_height
-            total_cells = actual_cells_x * actual_cells_y
-            grid_size_info = format_grid_size_multiunit(grid_width, grid_height)
-            grid_info = f"Grid: {grid_size_info} | Cells: {actual_cells_x}x{actual_cells_y} = {total_cells}"
-        elif self.controls.cell_count_mode.get() == 2:
-            # Fixed cell size mode
-            fixed_size = float(self.controls.fixed_cell_size.get())
-            fixed_unit = self.controls.fixed_cell_unit.get()
-            img_width, img_height = self.image_processor.original_image.size
-            actual_cells_x = img_width // grid_width
-            actual_cells_y = img_height // grid_height
-            total_cells = actual_cells_x * actual_cells_y
-            grid_size_info = format_grid_size_multiunit(grid_width, grid_height)
-            grid_info = f"Grid: {fixed_size}{fixed_unit} ({grid_size_info}) | Cells: {actual_cells_x}x{actual_cells_y} = {total_cells}"
-        else:
-            # Manual size mode
-            if self.controls.grid_type.get() == 1:
-                grid_size_info = format_grid_size_multiunit(grid_width, grid_height)
-                grid_info = f"Grid: {self.grid_width:.1f}x{self.grid_height:.1f}{current_unit} ({grid_size_info})"
+            # Get resized dimensions if resize is enabled
+            target_resize_factor = self.calculate_resize_factor()
+            current_width = int(original_width * target_resize_factor)
+            current_height = int(original_height * target_resize_factor)
+            
+            # Convert to all units
+            def format_size_all_units(width_px, height_px):
+                cm_w = UnitConverter.from_pixels(width_px, 'cm')
+                cm_h = UnitConverter.from_pixels(height_px, 'cm')
+                mm_w = UnitConverter.from_pixels(width_px, 'mm')
+                mm_h = UnitConverter.from_pixels(height_px, 'mm')
+                inch_w = UnitConverter.from_pixels(width_px, 'inch')
+                inch_h = UnitConverter.from_pixels(height_px, 'inch')
+                
+                return f"{width_px}×{height_px}px | {cm_w:.1f}×{cm_h:.1f}cm | {mm_w:.0f}×{mm_h:.0f}mm | {inch_w:.2f}×{inch_h:.2f}in"
+            
+            if target_resize_factor != 1.0:
+                size_info = f"Original: {format_size_all_units(original_width, original_height)} | Current: {format_size_all_units(current_width, current_height)}"
             else:
-                grid_size_info = format_grid_size_multiunit(grid_width, grid_height)
-                grid_info = f"Grid: {self.grid_size:.1f}{current_unit} ({grid_size_info})"
+                size_info = f"Size: {format_size_all_units(original_width, original_height)}"
         
-        self.status_label.config(
-            text=f"Loaded: {info['filename'] if info else 'None'} | Canvas Zoom: {self.canvas_zoom_factor:.1f}x | {grid_info} | Color: {self.grid_color}")
+        # Add canvas zoom info
+        zoom_info = f"Canvas Zoom: {self.canvas_zoom_factor:.1f}x"
+        
+        # Build status message
+        filename = info['filename'] if info else 'None'
+        if size_info:
+            self.status_label.config(text=f"Loaded: {filename} | {zoom_info} | {size_info}")
+        else:
+            self.status_label.config(text=f"Loaded: {filename} | {zoom_info}")
 
     def export_image(self):
         if self.image_processor.original_image is None:
@@ -437,66 +328,21 @@ class ArtGridApp:
         if not file_path:
             return
 
-        # Calculate grid dimensions for export
+        # Calculate grid dimensions for export (manual size mode)
         current_unit = self.controls.grid_unit.get()
-        if self.controls.cell_count_mode.get() == 1:
-            # Cell count mode: use calculated grid size
-            img_width, img_height = self.image_processor.original_image.size
-            target_cells = self.controls.target_cells.get()
-            grid_width, grid_height = self.calculate_grid_from_cell_count(
-                target_cells, img_width, img_height)
-        elif self.controls.cell_count_mode.get() == 2:
-            # Fixed cell size mode: use specified cell size
-            try:
-                fixed_size = float(self.controls.fixed_cell_size.get())
-                fixed_unit = self.controls.fixed_cell_unit.get()
-                grid_width = int(UnitConverter.to_pixels(fixed_size, fixed_unit))
-                grid_height = int(UnitConverter.to_pixels(fixed_size, fixed_unit))
-                grid_width = max(1, grid_width)
-                grid_height = max(1, grid_height)
-            except (ValueError, AttributeError):
-                grid_width = grid_height = 50
-        else:
-            # Manual size mode: convert from units to pixels
-            if self.controls.grid_type.get() == 0:
-                grid_width = int(UnitConverter.to_pixels(self.grid_size, current_unit))
-                grid_height = int(UnitConverter.to_pixels(self.grid_size, current_unit))
-            else:
-                grid_width = int(UnitConverter.to_pixels(self.grid_width, current_unit))
-                grid_height = int(UnitConverter.to_pixels(self.grid_height, current_unit))
+        grid_width = int(UnitConverter.to_pixels(self.grid_size, current_unit))
+        grid_height = int(UnitConverter.to_pixels(self.grid_size, current_unit))
 
-        # Use 96 DPI as default for proper measurements
+        # Use the resize factor for export (canvas zoom is display-only)
+        target_resize_factor = self.calculate_resize_factor()
         dpi = UnitConverter.DEFAULT_DPI
         success = self.grid_exporter.export_image_with_grid(
             self.image_processor.original_image, file_path, grid_width, grid_height,
-            self.line_thickness, self.grid_color, 1.0, dpi
+            self.line_thickness, self.grid_color, target_resize_factor, dpi
         )
         
         if success:
-            if self.controls.cell_count_mode.get() == 1:
-                # Cell count mode
-                img_width, img_height = self.image_processor.original_image.size
-                actual_cells_x = img_width // grid_width
-                actual_cells_y = img_height // grid_height
-                total_cells = actual_cells_x * actual_cells_y
-                self.status_label.config(text=f"Exported image to: {file_path} (96 DPI, {actual_cells_x}x{actual_cells_y} = {total_cells} cells)")
-            elif self.controls.cell_count_mode.get() == 2:
-                # Fixed cell size mode
-                fixed_size = float(self.controls.fixed_cell_size.get())
-                fixed_unit = self.controls.fixed_cell_unit.get()
-                img_width, img_height = self.image_processor.original_image.size
-                actual_cells_x = img_width // grid_width
-                actual_cells_y = img_height // grid_height
-                total_cells = actual_cells_x * actual_cells_y
-                self.status_label.config(text=f"Exported image to: {file_path} (96 DPI, {fixed_size}{fixed_unit} cells, {actual_cells_x}x{actual_cells_y} = {total_cells} total)")
-            else:
-                # Manual size mode
-                unit_name = UnitConverter.get_unit_display_name(current_unit)
-                if current_unit == 'px':
-                    self.status_label.config(text=f"Exported image to: {file_path} (96 DPI)")
-                else:
-                    actual_size = UnitConverter.from_pixels(grid_width, current_unit)
-                    self.status_label.config(text=f"Exported image to: {file_path} (96 DPI, {actual_size:.1f}{current_unit} per cell)")
+            self.status_label.config(text=f"Exported image to: {file_path}")
         else:
             self.status_label.config(text="Export failed")
 

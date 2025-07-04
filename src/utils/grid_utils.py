@@ -56,25 +56,19 @@ class GridExporter:
     
     def export_image_with_grid(self, original_image, file_path, grid_width, grid_height, 
                               line_thickness, grid_color, resize_factor, dpi=96):
-        margin = max(30, min(grid_width, grid_height) // 2)
-        
         img_width, img_height = original_image.size
         
         export_width = int(img_width * resize_factor)
         export_height = int(img_height * resize_factor)
         
-        # Use NEAREST neighbor for crisp pixel-perfect scaling
-        resized_image = original_image.resize((export_width, export_height), Image.NEAREST)
+        # Grid dimensions should remain constant in actual units
+        scaled_grid_width = grid_width
+        scaled_grid_height = grid_height
+        scaled_line_thickness = line_thickness
         
-        export_image = Image.new('RGBA', (export_width + margin * 2, export_height + margin * 2), (255, 255, 255, 255))
-        export_image.paste(resized_image, (margin, margin))
-        
-        draw = ImageDraw.Draw(export_image)
-        
-        # Scale grid dimensions by resize factor for crisp rendering
-        scaled_grid_width = int(grid_width * resize_factor)
-        scaled_grid_height = int(grid_height * resize_factor)
-        scaled_line_thickness = max(1, int(line_thickness * resize_factor))
+        # Calculate number of cells to determine margin requirements
+        num_cols = export_width // scaled_grid_width
+        num_rows = export_height // scaled_grid_height
         
         try:
             # Scale font size based on grid dimensions and zoom factor
@@ -83,28 +77,54 @@ class GridExporter:
         except IOError:
             font = ImageFont.load_default()
         
+        # Calculate required margins based on actual text dimensions
+        draw_temp = ImageDraw.Draw(Image.new('RGB', (100, 100)))
+        
+        # Test longest column number (highest number)
+        max_col_text = str(num_cols)
+        col_text_width, col_text_height = draw_temp.textsize(max_col_text, font=font) if hasattr(
+            draw_temp, 'textsize') else (len(max_col_text) * font_size // 2, font_size)
+        
+        # Test longest row number
+        max_row_text = str(num_rows)
+        row_text_width, row_text_height = draw_temp.textsize(max_row_text, font=font) if hasattr(
+            draw_temp, 'textsize') else (len(max_row_text) * font_size // 2, font_size)
+        
+        # Calculate margins with padding
+        top_margin = col_text_height + 10  # 10px padding
+        left_margin = row_text_width + 10  # 10px padding
+        
+        # Use LANCZOS for consistent scaling with canvas display
+        resized_image = original_image.resize((export_width, export_height), Image.LANCZOS)
+        
+        export_image = Image.new('RGBA', (export_width + left_margin + 10, export_height + top_margin + 10), (255, 255, 255, 255))
+        export_image.paste(resized_image, (left_margin, top_margin))
+        
+        draw = ImageDraw.Draw(export_image)
+        
         # Draw vertical grid lines (crisp, pixel-aligned)
         for x in range(0, export_width + 1, scaled_grid_width):
-            x_pos = x + margin
-            draw.line([(x_pos, margin), (x_pos, export_height + margin)],
+            x_pos = x + left_margin
+            draw.line([(x_pos, top_margin), (x_pos, export_height + top_margin)],
                      fill=grid_color, width=scaled_line_thickness)
         
         # Draw horizontal grid lines (crisp, pixel-aligned)
         for y in range(0, export_height + 1, scaled_grid_height):
-            y_pos = y + margin
-            draw.line([(margin, y_pos), (export_width + margin, y_pos)],
+            y_pos = y + top_margin
+            draw.line([(left_margin, y_pos), (export_width + left_margin, y_pos)],
                      fill=grid_color, width=scaled_line_thickness)
         
         # Draw column numbers using scaled grid dimensions
         for x in range(0, export_width, scaled_grid_width):
             col_num = x // scaled_grid_width + 1
-            cell_center_x = x + margin + scaled_grid_width // 2
+            cell_center_x = x + left_margin + scaled_grid_width // 2
             
             text_width, text_height = draw.textsize(str(col_num), font=font) if hasattr(
-                draw, 'textsize') else (scaled_grid_width // 3, scaled_grid_height // 3)
+                draw, 'textsize') else (len(str(col_num)) * font_size // 2, font_size)
             
+            # Position column numbers above the grid
             draw.text(
-                (cell_center_x - text_width // 2, margin // 2 - text_height // 2),
+                (cell_center_x - text_width // 2, top_margin // 2 - text_height // 2),
                 str(col_num),
                 fill="blue",
                 font=font
@@ -113,13 +133,14 @@ class GridExporter:
         # Draw row numbers using scaled grid dimensions
         for y in range(0, export_height, scaled_grid_height):
             row_num = str(y // scaled_grid_height + 1)
-            cell_center_y = y + margin + scaled_grid_height // 2
+            cell_center_y = y + top_margin + scaled_grid_height // 2
             
             text_width, text_height = draw.textsize(row_num, font=font) if hasattr(
-                draw, 'textsize') else (scaled_grid_width // 3, scaled_grid_height // 3)
+                draw, 'textsize') else (len(row_num) * font_size // 2, font_size)
             
+            # Position row numbers to the left of the grid
             draw.text(
-                (margin // 2 - text_width // 2, cell_center_y - text_height // 2),
+                (left_margin // 2 - text_width // 2, cell_center_y - text_height // 2),
                 row_num,
                 fill="blue",
                 font=font
