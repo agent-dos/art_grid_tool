@@ -11,39 +11,42 @@ class GridRenderer:
     
     def draw_grid_on_canvas(self, canvas, img_x, img_y, scaled_width, scaled_height, 
                            scaled_grid_width, scaled_grid_height, line_thickness, grid_color, canvas_zoom_factor):
-        # Draw vertical lines
+        # Ensure line thickness remains constant in pixels regardless of zoom
+        pixel_line_thickness = max(1, int(line_thickness))
+        
+        # Draw vertical lines - snap to integer pixels to avoid anti-aliasing
         for x_unzoomed in range(0, scaled_width + 1, scaled_grid_width):
-            x_pos = img_x + (x_unzoomed * canvas_zoom_factor)
-            y_start = img_y
-            y_end = img_y + (scaled_height * canvas_zoom_factor)
+            x_pos = int(img_x + (x_unzoomed * canvas_zoom_factor))
+            y_start = int(img_y)
+            y_end = int(img_y + (scaled_height * canvas_zoom_factor))
             canvas.create_line(x_pos, y_start, x_pos, y_end,
-                              width=line_thickness, fill=grid_color, tags="grid_tag")
+                              width=pixel_line_thickness, fill=grid_color, tags="grid_tag")
 
-        # Draw horizontal lines
+        # Draw horizontal lines - snap to integer pixels to avoid anti-aliasing
         for y_unzoomed in range(0, scaled_height + 1, scaled_grid_height):
-            y_pos = img_y + (y_unzoomed * canvas_zoom_factor)
-            x_start = img_x
-            x_end = img_x + (scaled_width * canvas_zoom_factor)
+            y_pos = int(img_y + (y_unzoomed * canvas_zoom_factor))
+            x_start = int(img_x)
+            x_end = int(img_x + (scaled_width * canvas_zoom_factor))
             canvas.create_line(x_start, y_pos, x_end, y_pos,
-                              width=line_thickness, fill=grid_color, tags="grid_tag")
+                              width=pixel_line_thickness, fill=grid_color, tags="grid_tag")
     
     def draw_coordinates_on_canvas(self, canvas, img_x, img_y, scaled_width, scaled_height,
                                   scaled_grid_width, scaled_grid_height, canvas_zoom_factor):
         font_size = max(8, min(12, min(scaled_grid_width, scaled_grid_height) // 4))
 
-        # Draw column numbers
+        # Draw column numbers - snap to integer pixels to avoid anti-aliasing
         for x_unzoomed in range(0, scaled_width, scaled_grid_width):
             col_num = x_unzoomed // scaled_grid_width + 1
-            cell_center_x = img_x + (x_unzoomed + scaled_grid_width // 2) * canvas_zoom_factor
-            canvas.create_text(cell_center_x, img_y - 15, # -15 offset for text position
+            cell_center_x = int(img_x + (x_unzoomed + scaled_grid_width // 2) * canvas_zoom_factor)
+            canvas.create_text(cell_center_x, int(img_y - 15), # -15 offset for text position
                               text=str(col_num), fill="blue",
                               font=("Arial", font_size), tags="coordinate_tag")
 
-        # Draw row numbers
+        # Draw row numbers - snap to integer pixels to avoid anti-aliasing
         for y_unzoomed in range(0, scaled_height, scaled_grid_height):
             row_num = y_unzoomed // scaled_grid_height + 1
-            cell_center_y = img_y + (y_unzoomed + scaled_grid_height // 2) * canvas_zoom_factor
-            canvas.create_text(img_x - 15, cell_center_y, # -15 offset for text position
+            cell_center_y = int(img_y + (y_unzoomed + scaled_grid_height // 2) * canvas_zoom_factor)
+            canvas.create_text(int(img_x - 15), cell_center_y, # -15 offset for text position
                               text=str(row_num), fill="blue",
                               font=("Arial", font_size), tags="coordinate_tag")
 
@@ -64,7 +67,8 @@ class GridExporter:
         # Grid dimensions should remain constant in actual units
         scaled_grid_width = grid_width
         scaled_grid_height = grid_height
-        scaled_line_thickness = line_thickness
+        # Ensure line thickness is integer pixels
+        scaled_line_thickness = max(1, int(line_thickness))
         
         # Calculate number of cells to determine margin requirements
         num_cols = export_width // scaled_grid_width
@@ -104,43 +108,43 @@ class GridExporter:
         
         # Draw vertical grid lines (crisp, pixel-aligned)
         for x in range(0, export_width + 1, scaled_grid_width):
-            x_pos = x + left_margin
-            draw.line([(x_pos, top_margin), (x_pos, export_height + top_margin)],
+            x_pos = int(x + left_margin)
+            draw.line([(x_pos, int(top_margin)), (x_pos, int(export_height + top_margin))],
                      fill=grid_color, width=scaled_line_thickness)
         
         # Draw horizontal grid lines (crisp, pixel-aligned)
         for y in range(0, export_height + 1, scaled_grid_height):
-            y_pos = y + top_margin
-            draw.line([(left_margin, y_pos), (export_width + left_margin, y_pos)],
+            y_pos = int(y + top_margin)
+            draw.line([(int(left_margin), y_pos), (int(export_width + left_margin), y_pos)],
                      fill=grid_color, width=scaled_line_thickness)
         
-        # Draw column numbers using scaled grid dimensions
+        # Draw column numbers using scaled grid dimensions - snap to integer pixels
         for x in range(0, export_width, scaled_grid_width):
             col_num = x // scaled_grid_width + 1
-            cell_center_x = x + left_margin + scaled_grid_width // 2
+            cell_center_x = int(x + left_margin + scaled_grid_width // 2)
             
             text_width, text_height = draw.textsize(str(col_num), font=font) if hasattr(
                 draw, 'textsize') else (len(str(col_num)) * font_size // 2, font_size)
             
-            # Position column numbers above the grid
+            # Position column numbers above the grid - snap to integer pixels
             draw.text(
-                (cell_center_x - text_width // 2, top_margin // 2 - text_height // 2),
+                (int(cell_center_x - text_width // 2), int(top_margin // 2 - text_height // 2)),
                 str(col_num),
                 fill="blue",
                 font=font
             )
         
-        # Draw row numbers using scaled grid dimensions
+        # Draw row numbers using scaled grid dimensions - snap to integer pixels
         for y in range(0, export_height, scaled_grid_height):
             row_num = str(y // scaled_grid_height + 1)
-            cell_center_y = y + top_margin + scaled_grid_height // 2
+            cell_center_y = int(y + top_margin + scaled_grid_height // 2)
             
             text_width, text_height = draw.textsize(row_num, font=font) if hasattr(
                 draw, 'textsize') else (len(row_num) * font_size // 2, font_size)
             
-            # Position row numbers to the left of the grid
+            # Position row numbers to the left of the grid - snap to integer pixels
             draw.text(
-                (left_margin // 2 - text_width // 2, cell_center_y - text_height // 2),
+                (int(left_margin // 2 - text_width // 2), int(cell_center_y - text_height // 2)),
                 row_num,
                 fill="blue",
                 font=font

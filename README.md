@@ -23,7 +23,29 @@ A Windows application that creates customizable grid overlays on images for arti
 1. Ensure Python is installed on your system
 2. Install required dependencies: `pip install pillow`
 3. Download the script
-4. Run the application: `python art_grid.py`
+4. Run the application: `python main.py`
+
+## Creating an Executable File
+
+To create a standalone `.exe` file that doesn't require Python to be installed:
+
+1. Install PyInstaller: `pip install pyinstaller`
+2. Navigate to the project directory
+3. Create the executable: `pyinstaller --onefile --windowed main.py`
+4. The executable will be created in the `dist` folder
+
+### Advanced PyInstaller Options
+
+For a more optimized executable with custom icon:
+
+```bash
+pyinstaller --onefile --windowed --name "ArtGridTool" --icon=icon.ico main.py
+```
+
+- `--onefile`: Creates a single executable file
+- `--windowed`: Removes the console window (GUI only)
+- `--name`: Sets the executable name
+- `--icon`: Adds a custom icon (optional)
 
 ## Usage
 
